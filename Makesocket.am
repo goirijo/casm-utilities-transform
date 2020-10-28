@@ -1,0 +1,8 @@
+bin_PROGRAMS += _casmutils-transform
+
+_casmutils_transform_SOURCES =\
+						  plugins/casm-utilities-transform/main.cpp
+
+_casmutils_transform_LDADD=\
+						libcasmutils.la
+
