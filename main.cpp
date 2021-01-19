@@ -36,12 +36,13 @@ int main(int argc, char* argv[])
     double input_rotation_angle;
 
     app.add_option("-s,--structure",input_struc_path,"Path to input structure (vasp format).")->required()->check(CLI::ExistingFile);
-    app.add_option("-o,--output",output_struc_path,"Path to write transformed structure to.")->required();
+    app.add_option("-o,--output",output_struc_path,"Path to write transformed structure to.");
     app.add_option("-m,--matrix",input_mat_path,"Path to file containing 3x3 transformation matrix.")->check(CLI::ExistingFile);
     //add conditional requiring -a if -r (from CLI readme)
     auto* rotation_opt = app.add_option("-a,--axis",input_rotation_axis,"Rotation axis in vector form")->expected(3);
     app.add_option("-r,--angle",input_rotation_angle,"Rotation angle in radians")->needs(rotation_opt);
-    //TODO: just write input -> output if no transformation / just throw warning message
+    //TODO: if no transformation throw warning message
+    if(!((rotation_opt->count())||)
     //TODO: make output flag optional and print to screen/save locally
 
     CLI11_PARSE(app, argc, argv);
