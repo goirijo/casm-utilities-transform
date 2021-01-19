@@ -32,17 +32,17 @@ int main(int argc, char* argv[])
     cu::fs::path input_struc_path;
     cu::fs::path input_mat_path;
     cu::fs::path output_struc_path;
-    std::vector<double> rotation_axis_input;
-    double rotation_angle_input=0;
-
-
+    std::vector<double> input_rotation_axis;
+    double input_rotation_angle;
 
     app.add_option("-s,--structure",input_struc_path,"Path to input structure (vasp format).")->required()->check(CLI::ExistingFile);
+    app.add_option("-o,--output",output_struc_path,"Path to write transformed structure to.")->required();
     app.add_option("-m,--matrix",input_mat_path,"Path to file containing 3x3 transformation matrix.")->check(CLI::ExistingFile);
     //add conditional requiring -a if -r (from CLI readme)
-    auto* rotation_opt = app.add_option("-a,--rotation-axis",rotation_axis_input,"Rotation axis in vector form")->expected(3);
-    app.add_option("-r,--rotation-angle",rotation_angle_input,"Rotation angle in radians");
-    app.add_option("-o,--output",output_struc_path,"Path to write transformed structure to.")->required();
+    auto* rotation_opt = app.add_option("-a,--axis",input_rotation_axis,"Rotation axis in vector form")->expected(3);
+    app.add_option("-r,--angle",input_rotation_angle,"Rotation angle in radians")->needs(rotation_opt);
+    //TODO: just write input -> output if no transformation / just throw warning message
+    //TODO: make output flag optional and print to screen/save locally
 
     CLI11_PARSE(app, argc, argv);
 
@@ -51,14 +51,14 @@ int main(int argc, char* argv[])
 
     if(rotation_opt->count()) {
     //Read rotation inputs and normalize the axis
-    double j = rotation_axis_input[0];
-    double k = rotation_axis_input[1];
-    double l = rotation_axis_input[2];
-    Eigen::Vector3d rotation_axis(j,k,l);
+    Eigen::Vector3d rotation_axis;
+    for(int i = 0; i<3; i++) {
+        rotation_axis(i)=input_rotation_axis[i];
+    }
     rotation_axis.normalize();
 
-        //create rotation_matrix (in proper format) - check syntax for Eigen 3d matrix
-    Eigen::AngleAxisd rotation_AngleAxis(rotation_angle_input,rotation_axis);
+    //create rotation_matrix (in proper format) - check syntax for Eigen 3d matrix
+    Eigen::AngleAxisd rotation_AngleAxis(input_rotation_angle,rotation_axis);
     Eigen::Matrix3d rotation_matrix = rotation_AngleAxis.matrix();
     
     //Apply rotation to lattice
