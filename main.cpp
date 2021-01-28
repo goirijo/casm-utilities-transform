@@ -34,17 +34,18 @@ int main(int argc, char* argv[])
     cu::fs::path output_struc_path; //default output to screen
     std::vector<double> input_rotation_axis;
     double input_rotation_angle;
-    CLI::Option* rotation_ang_opt;
-    CLI::Option* matrix_opt;
-    CLI::Option* rotation_opt;
-
+ 
+    //TODO: Add option to enable printing input
     app.add_option("-s,--structure",input_struc_path,"Path to input structure (vasp format).")->required()->check(CLI::ExistingFile);
     app.add_option("-o,--output",output_struc_path,"Path to write transformed structure to. Defaults to printing to screen if no output path indicated");
-    matrix_opt = app.add_option("-m,--matrix",input_mat_path,"Path to file containing 3x3 transformation matrix.")->check(CLI::ExistingFile)->excludes(rotation_opt)->excludes(rotation_ang_opt);
-    rotation_opt = app.add_option("-a,--axis",input_rotation_axis,"Rotation axis in vector form")->expected(3)->excludes(matrix_opt)->needs(rotation_ang_opt)->excludes(matrix_opt);
-    rotation_ang_opt = app.add_option("-r,--angle",input_rotation_angle,"Rotation angle in radians")->excludes(matrix_opt)->needs(rotation_opt)->excludes(matrix_opt);
+    auto* matrix_opt = app.add_option("-m,--matrix",input_mat_path,"Path to file containing 3x3 transformation matrix.")->check(CLI::ExistingFile);
+    auto* rotation_opt = app.add_option("-a,--axis",input_rotation_axis,"Rotation axis in vector form")->expected(3);
+    //TODO: Make this degrees
+    auto* rotation_ang_opt = app.add_option("-r,--angle",input_rotation_angle,"Rotation angle in radians");
     
-    //TODO: make output flag optional and print to screen/save locally
+    rotation_opt->needs(rotation_ang_opt)->excludes(matrix_opt);
+    rotation_ang_opt->needs(rotation_opt)->excludes(matrix_opt);
+    matrix_opt->excludes(rotation_opt)->excludes(rotation_ang_opt);
 
     CLI11_PARSE(app, argc, argv);
 
@@ -54,7 +55,7 @@ int main(int argc, char* argv[])
     auto input_struc=cu::xtal::Structure::from_poscar(input_struc_path);
 
     //debugging
-    std::cout << "Checking empty output path" << output_struc_path.empty() << "\n";
+    std::cout << "Checking empty output path: " << output_struc_path.empty() << "\n";
     
     //TODO: if no transformation throw warning message
     if(!((rotation_opt->count())||matrix_opt->count())) {
@@ -91,24 +92,22 @@ int main(int argc, char* argv[])
     std::cout << "rotation applied\n";
 
     // Output transformed structure
-    if(cu::fs::exists(output_struc_path)) {
-        //debugging
-        std::cout <<"Writing output to path\n";
+    if(!(output_struc_path.empty())) {
         cu::xtal::write_poscar(final_struc,output_struc_path);
         }
     else {
-        //debugging
-        std::cout <<"Writing output to screen\n";
+        std::cout << "No output path specified, printing to screen:\n";
         cu::xtal::print_poscar(final_struc,std::cout);
-    }
+        }
+    
     }
 
     else {
-    // Read a transformation matrix (col or rows?)
+    // Read a transformation matrix
     Eigen::Matrix3d transform_mat=read_matrix(input_mat_path);
     
     //debugging
-    std::cout << "read matrix\n";
+    std::cout << "matrix was read \n";
 
     // Apply transformation to lattice
     auto final_struc=cu::xtal::apply_deformation(input_struc, transform_mat);
@@ -118,6 +117,7 @@ int main(int argc, char* argv[])
         cu::xtal::write_poscar(final_struc,output_struc_path);
         }
     else {
+        std::cout << "No output path specified, printing to screen:\n";
         cu::xtal::print_poscar(final_struc,std::cout);
         }
     }
